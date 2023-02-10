@@ -1,8 +1,6 @@
 import cv2
 import depthai as dai
 import numpy as np
-import time
-import math
 
 MEASURED_AVERAGE = 255/771.665 #(max_dist-min_dist)/2+min_dist then converted to 0->255 range
 
@@ -22,15 +20,15 @@ VFOV = 50.0 # Vertical field of view
 BASELINE = 7.5 # Distance between stereo cameras in cm
 FOCAL = 883.15 # Magic number needed for disparity -> depth calculation
 
-WINDOW = "Indoor Nav"
+WINDOW = "Indoor Navigation Depth Map (Collision Detection)"
 
-def getFrame(queue):
+def get_frame(queue):
 	# Get frame from queue
 	frame = queue.get()
 	# Convert frame to OpenCV format
 	return frame.getCvFrame()
 
-def getMonoCamera(pipeline, isLeft):
+def get_mono_camera(pipeline, isLeft):
 	mono = pipeline.createMonoCamera()
 	
 	mono.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
@@ -41,7 +39,7 @@ def getMonoCamera(pipeline, isLeft):
 		mono.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 	return mono
 
-def getStereoPair(pipeline, monoLeft, monoRight):
+def get_stereo_pair(pipeline, monoLeft, monoRight):
 	stereo = pipeline.createStereoDepth()
 	
 	# Turn on occlusion check (small performance hit, but output is less noisy)
@@ -57,14 +55,23 @@ def get_reference():
 
 	# Iterating in interpreted python instead of numpy
 	# This is slow, but we only do this once at startup
-	for y in range(0, CAM_HEIGHT):
-		# Angle of the current pixel
-		theta = ((1.0-(y / CAM_HEIGHT)) * VFOV) - (VFOV / 2) + MOUNT_ANGLE
+	# for y in range(0, CAM_HEIGHT):
+	# 	# Angle of the current pixel
+	# 	theta = ((1.0-(y / CAM_HEIGHT)) * VFOV) - (VFOV / 2) + MOUNT_ANGLE
 
-		brightness = depthToBrightness(MOUNT_ELEVATION / (abs(math.tan(math.radians(theta)))))
+	# 	brightness = depthToBrightness(MOUNT_ELEVATION / (abs(math.tan(math.radians(theta)))))
 
-		for x in range(0, CAM_WIDTH):
-			referenceFrame[y][x] = brightness
+	# 	for x in range(0, CAM_WIDTH):
+	# 		referenceFrame[y][x] = brightness
+
+	# generate an array of theta values based on VFOV and MOUNT_ANGLE
+	theta = np.linspace(-(VFOV / 2) + MOUNT_ANGLE, VFOV / 2 + MOUNT_ANGLE, CAM_HEIGHT)
+	# calculate elevation factor
+	elevation_factor = MOUNT_ELEVATION / np.tan(np.radians(theta))
+	# get an array of brightness values
+	brightness = depth_to_brightness(elevation_factor)
+	# tile brightness array along the second axis CAM_WIDTH times and create the referenceFrame array
+	referenceFrame = np.tile(brightness[:, np.newaxis], (1, CAM_WIDTH))
 
 	return referenceFrame.astype(np.uint8)
 
@@ -72,12 +79,12 @@ def get_reference():
 # Ideally we'd use disparity to depth, but our test cases already map disparity from
 # 0 to 255, while the raw disparity value is 0 to 95, so we convert brightness to
 # disparity first, then disparity to depth.
-def brightnessToDepth(b):
+def brightness_to_depth(b):
 	disparity = (95 * b) / 255
 
 	return BASELINE * FOCAL / disparity
 
-def depthToBrightness(d):
+def depth_to_brightness(d):
 	disparity = BASELINE * FOCAL / d
 
 	return disparity
@@ -92,8 +99,16 @@ def analyze_frame(frame, referenceFrame):
 	# we then find the difference between the expected depth and actual depth
 
 	# terrible no-good bad hacky workaround for underflow during subtraction:
-	frame = np.clip( np.abs(np.subtract(frame.astype(np.int16), referenceFrame.astype(np.int16))), 0, 255 ).astype(np.uint8)
+	# frame = np.clip( np.abs(np.subtract(frame.astype(np.int16), referenceFrame.astype(np.int16))), 0, 255 ).astype(np.uint8)
 	# essentially, cast both operands to int16, subtract, get absolute value, clamp to [0,255], cast back to uint8
+
+	# determine the sign of the subtraction result
+	mask = frame >= referenceFrame
+	# if frame >= referenceFrame, positive result so do frame - referenceFrame
+	# if frame < referenceFrame, negative result so do referenceFrame - frame
+	frame = np.where(mask, frame - referenceFrame, referenceFrame - frame)
+	# clip to between 0 and 255, and cast to uint8
+	frame = np.minimum(frame, 255).astype(np.uint8)
 
 	# we're now left with an image where black means expected, white means unexpected.
 	# therefore, looking for white in the image gives an estimate of danger
@@ -105,21 +120,21 @@ def analyze_frame(frame, referenceFrame):
 	return danger, frame
 
 # UI helper functions to workaround lambda arguments
-def makeSlider(name, window, a_min, a_max):
+def make_slider(name, window, a_min, a_max):
 	cv2.createTrackbar(name, window, a_min, a_max, (lambda x: x))
 	cv2.setTrackbarPos(name, window, int((a_min+a_max)/2))
 
-def setSlider(name, window, val):
+def set_slider(name, window, val):
 	cv2.setTrackbarPos(name,window,val)
 
 if __name__ == '__main__':
 	pipeline = dai.Pipeline()
 	
 	# Get side cameras
-	monoLeft = getMonoCamera(pipeline, isLeft = True)
-	monoRight = getMonoCamera(pipeline, isLeft = False)
+	monoLeft = get_mono_camera(pipeline, isLeft = True)
+	monoRight = get_mono_camera(pipeline, isLeft = False)
 	
-	stereo = getStereoPair(pipeline, monoLeft, monoRight)
+	stereo = get_stereo_pair(pipeline, monoLeft, monoRight)
 	
 	xOutDisp = pipeline.createXLinkOut()
 	xOutDisp.setStreamName("disparity")
@@ -145,17 +160,17 @@ if __name__ == '__main__':
 
 		cv2.namedWindow(WINDOW)
 
-		makeSlider("Danger", WINDOW, 0, DANGER_THRESHOLD)
+		make_slider("Danger", WINDOW, 0, DANGER_THRESHOLD)
 		referenceFrame = get_reference()
 
 		while True:
-			disparity = getFrame(disparityQueue)
+			disparity = get_frame(disparityQueue)
 			disparity = (disparity * disparityMultiplier).astype(np.uint8)
 
 			danger, result = analyze_frame(disparity, referenceFrame)
 
 			cv2.imshow(WINDOW, result)
-			setSlider("Danger", WINDOW, danger)
+			set_slider("Danger", WINDOW, danger)
 
 			# Check for keyboard input
 			key = cv2.waitKey(1)
