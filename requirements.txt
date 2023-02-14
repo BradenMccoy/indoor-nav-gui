@@ -1,2 +1,4 @@
+PyQt5
+numpy
 opencv-python==4.5.4.58
 depthai==2.11.1.0
