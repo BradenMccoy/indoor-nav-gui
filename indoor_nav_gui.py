@@ -3,7 +3,7 @@ import camera_input as camera
 import numpy as np
 import cv2
 from PyQt5 import QtWidgets as qtw
-from PyQt5.QtCore import QCoreApplication, QMetaObject, QRect, QUrl, QThread, pyqtSignal, QObject, pyqtSlot
+from PyQt5.QtCore import Qt, QCoreApplication, QMetaObject, QRect, QUrl, QThread, pyqtSignal, QObject, pyqtSlot
 from PyQt5.QtGui import QPixmap, QImage
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
@@ -34,6 +34,7 @@ class CameraView(qtw.QWidget):
     url = QUrl.fromLocalFile(file_path)
     content = QMediaContent(url)
     media_player.setMedia(content)
+    show_warning = True
 
     def __init__(self, ParentWidget):
         self.CameraView = qtw.QWidget(ParentWidget)
@@ -42,13 +43,25 @@ class CameraView(qtw.QWidget):
         self.CameraView.setStyleSheet('background-color: white;')
 
         self.warning_button = qtw.QPushButton("Warning Button")
-        self.warning_button.clicked.connect(self.warning)
+        self.warning_button.clicked.connect(lambda: self.display_warning())
         self.video_label = qtw.QLabel()
 
-        self.VideoThread = VideoThread()
-
+        self.VideoThread = VideoThread() 
+        
+        self.warning_widget = qtw.QWidget(self.CameraView)
+        self.warning_widget.setGeometry(QRect(30, 20, 871, 361))
+        self.warning_symbol = QPixmap("images/warning-symbol.png").scaled(int(self.warning_widget.height()/2), int(self.warning_widget.width()/2), Qt.KeepAspectRatio, Qt.FastTransformation)
+        self.warning_label = qtw.QLabel()
+        self.warning_label.setPixmap(self.warning_symbol)
+        
+        self.warning_layout = qtw.QVBoxLayout()
+        self.warning_layout.addWidget(self.warning_label)
+        self.warning_widget.setLayout(self.warning_layout)
+        self.warning_label.setHidden(True)
+        
         layout = qtw.QVBoxLayout()
         layout.addWidget(self.warning_button)
+        layout.addWidget(self.warning_widget)
         layout.addWidget(self.video_label)
         self.CameraView.setLayout(layout)
 
@@ -59,8 +72,11 @@ class CameraView(qtw.QWidget):
         self.video_label.setPixmap(QPixmap.fromImage(image))
 
 
-    def warning(self):
+    def display_warning(self):
+        self.show_warning = not self.show_warning
+
         self.media_player.play()
+        self.warning_label.setHidden((self.show_warning))
 
 class CollisionIndicatorView(qtw.QWidget):
     def __init__(self, ParentWidget):
