@@ -36,7 +36,7 @@ If done correctly, a window will pop up showing the depth stream from the camera
 
 ## Our UI Documentation
 
-### Main Page
+### #1 - Main Page
 
 Our solution is based around assisting the user by supplying additional helpful information about their surroundings, and to this end, we decided that only one page would be necessary. We found that everything users would need could fit into a single screen with room to spare for additions if they are needed. Future work may add additional screens as more features are added.
 
@@ -45,3 +45,5 @@ The main page includes a camera display, a collision indicator, a text based log
 We will use **feedback** by using both visual and audio indicators on collision warnings, which will make it clear and easy to understand when a collision is imminent. The collision indicator is to further aid in determining the cause of a potential collision, and this simple graphic is used to display a direction and location as an effective visual representation. This exists on top of a stop sign that will appear on screen when a problem is detected, representing high **affordance**, as users will visually recognize this stop sign and be aware of its purpose from other places they have witnessed it. The audio warning will also become higher frequency as the object gets closer, which will serve as the audio counterpart to the collision indicator.
 
 ![image](https://user-images.githubusercontent.com/13970556/219263404-354d13b7-30e5-42de-9ccc-30ce7ede7acd.png)
+
+No simulated backend was used for this, as a functioning backend was already implemented by the previous team, and was only marginally improved by our work.
