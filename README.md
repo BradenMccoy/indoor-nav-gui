@@ -7,7 +7,7 @@ Group Members (Group 1): Ethan Blight, Brady McCoy, Maxwell Dodd, Andrew Luna
 ## Individual Contributions
 
 ### Ethan Blight
-Improved logic for existing backend, including the nested for loop logic in `get_reference()` for setting pixel brightness, and the logic in `analyze_frame()` for subtraction underflow prevention, both in `camera_input.py`.
+Improved logic for existing backend, including the nested for loop logic in `get_reference()` for setting pixel brightness, and the logic in `analyze_frame()` for subtraction underflow prevention, both in `camera_input.py`. Also worked on adding sections and details to the README describing what was added for R1.
 ### Brady McCoy
 Created a Figma prototype for our UI design, including the controls for and views for all of our needed features. Also handled the UI guidelines and documentation.
 ### Maxwell Dodd
