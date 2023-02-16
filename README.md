@@ -3,7 +3,7 @@ Link to source code repo: https://github.com/hechtej/indoor-nav
 
 Shows an estimated depth stream from the OAK-D camera.  Based on how much this deviates from a pre-determined average depth, a danger value is calculated which, if it exceeds a certain threshold, may warrant an emergency stop.
 
-Can simply be run with `python3 main.py`.  If no camera is connected, the program will crash.
+Can simply be run with `python3 indoor_nav.py`.  If no camera is connected, the program will crash.
 
 ## Setup
 ```

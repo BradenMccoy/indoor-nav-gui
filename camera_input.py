@@ -8,9 +8,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread
 class CameraInput(QObject):
 	frame_updated = pyqtSignal(np.ndarray)
 
-	disparityQueue = 0
-	disparityMultiplier = 0
-	referenceFrame = 0
+
 
 	MEASURED_AVERAGE = 255/771.665 #(max_dist-min_dist)/2+min_dist then converted to 0->255 range
 
@@ -32,7 +30,7 @@ class CameraInput(QObject):
 
 	WINDOW = "Indoor Navigation Depth Map (Collision Detection)"
 
-	def get_frame(self, queue):
+	def getframe(self, queue):
 		# Get frame from queue
 		frame = queue.get()
 		# Convert frame to OpenCV format
@@ -90,14 +88,14 @@ class CameraInput(QObject):
 	# 0 to 255, while the raw disparity value is 0 to 95, so we convert brightness to
 	# disparity first, then disparity to depth.
 	def brightness_to_depth(self, b):
-		disparity = (95 * b) / 255
+		self.disparity = (95 * b) / 255
 
-		return self.BASELINE * self.FOCAL / disparity
+		return self.BASELINE * self.FOCAL / self.disparity
 
 	def depth_to_brightness(self, d):
-		disparity = self.BASELINE * self.FOCAL / d
+		self.disparity = self.BASELINE * self.FOCAL / d
 
-		return disparity
+		return self.disparity
 
 	'''
 		Analyzes a given frame compared to what is considered a safe reference image
@@ -137,25 +135,30 @@ class CameraInput(QObject):
 	def set_slider(self, name, window, val):
 		cv2.setTrackbarPos(name,window,val)
 
-	def setup(self):
-		pipeline = dai.Pipeline()
+	def __init__(self):
+		super().__init__()
+		self.disparity = 0
+		self.disparityQueue = 0
+		self.disparityMultiplier = 0
+		self.referenceFrame = 0
+		self.pipeline = dai.Pipeline()
 
 		# Get side cameras
-		monoLeft = self.get_mono_camera(pipeline, isLeft=True)
-		monoRight = self.get_mono_camera(pipeline, isLeft=False)
+		self.monoLeft = self.get_mono_camera(self.pipeline, isLeft=True)
+		self.monoRight = self.get_mono_camera(self.pipeline, isLeft=False)
 
-		stereo = self.get_stereo_pair(pipeline, monoLeft, monoRight)
+		self.stereo = self.get_stereo_pair(self.pipeline, self.monoLeft, self.monoRight)
 
-		xOutDisp = pipeline.createXLinkOut()
-		xOutDisp.setStreamName("disparity")
+		self.xOutDisp = self.pipeline.createXLinkOut()
+		self.xOutDisp.setStreamName("disparity")
 
-		stereo.disparity.link(xOutDisp.input)
+		self.stereo.disparity.link(self.xOutDisp.input)
 
-		with dai.Device(pipeline) as device:
+		with dai.Device(self.pipeline) as device:
 			self.disparityQueue = device.getOutputQueue(name="disparity", maxSize=1, blocking=False)
 
 			# map disparity from 0 to 255
-			self.disparityMultiplier = 255 / stereo.initialConfig.getMaxDisparity()
+			self.disparityMultiplier = 255 / self.stereo.initialConfig.getMaxDisparity()
 
 			self.referenceFrame = self.get_reference()
 
@@ -169,7 +172,7 @@ class CameraInput(QObject):
 			'''
 
 	def get_frame(self):
-		self.disparity = self.get_frame(self.disparityQueue)
+		self.disparity = self.getframe(self.disparityQueue)
 		self.disparity = (self.disparity * self.disparityMultiplier).astype(np.uint8)
 
 		danger, result_frame = self.analyze_frame(self.disparity, self.referenceFrame)
