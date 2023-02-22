@@ -17,9 +17,9 @@ class App(qtw.QWidget):
         main_window.resize(927, 652)
 
         self.settings_view = SettingsView(main_window)
-        self.camera_view = CameraView(main_window, self.settings_view)
         self.collision_indicator_view = CollisionIndicatorView(main_window)
         self.log_view = LogView(main_window)
+        self.camera_view = CameraView(main_window, self.settings_view, self.collision_indicator_view)
         
 
         self.retranslateUi(main_window)
@@ -38,7 +38,7 @@ class CameraView(qtw.QWidget):
     show_warning = True
     auditory_warning = True
 
-    def __init__(self, parent_widget, settings):
+    def __init__(self, parent_widget, settings, collision_indicator):
         super(CameraView, self).__init__()
         self.camera_view = qtw.QWidget(parent_widget)
         self.camera_view.setGeometry(QRect(30, 20, 871, 361))
@@ -46,25 +46,16 @@ class CameraView(qtw.QWidget):
         self.camera_view.setStyleSheet("background-color: white;")
 
         self.settings = settings
+        self.collision_ind = collision_indicator
 
         self.warning_button = qtw.QPushButton("Warning Button")
         self.warning_button.clicked.connect(lambda: self.display_warning())
         self.video_label = qtw.QLabel()
-        
-        self.warning_widget = qtw.QWidget(self.camera_view)
-        self.warning_widget.setGeometry(QRect(30, 20, 871, 361))
-        self.warning_symbol = QPixmap("images/warning.png").scaled(int(self.warning_widget.height()/2), int(self.warning_widget.width()/2), Qt.KeepAspectRatio, Qt.FastTransformation)
-        self.warning_label = qtw.QLabel()
-        self.warning_label.setPixmap(self.warning_symbol)
-        
-        self.warning_layout = qtw.QVBoxLayout()
-        self.warning_layout.addWidget(self.warning_label)
-        self.warning_widget.setLayout(self.warning_layout)
-        self.warning_label.setHidden(True)
+
         
         layout = qtw.QVBoxLayout()
         layout.addWidget(self.warning_button)
-        layout.addWidget(self.warning_widget, alignment=Qt.AlignRight | Qt.AlignBottom)
+        #  layout.addWidget(self.warning_widget, alignment=Qt.AlignRight | Qt.AlignBottom)
         layout.addWidget(self.video_label)
         self.camera_view.setLayout(layout)
 
@@ -74,15 +65,13 @@ class CameraView(qtw.QWidget):
         image = QImage(frame, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
         self.video_label.setPixmap(QPixmap.fromImage(image))
 
-
     def display_warning(self):
-        self.show_warning = not self.show_warning
         logging.warning("Door detect, width 72 in / 189 cm")
         logging.critical("Door detect, width 20 in / 51 cm - WARNING!")
         if self.settings.hasSound():
             logging.info("sound played")
             self.media_player.play()
-        self.warning_label.setHidden(self.show_warning)
+        self.collision_ind.warning_symbol_hidden(False)
         
 
 class CollisionIndicatorView(qtw.QWidget):
@@ -91,6 +80,27 @@ class CollisionIndicatorView(qtw.QWidget):
         self.collision_indicator_view.setGeometry(QRect(29, 399, 211, 231))
         self.collision_indicator_view.setObjectName("CollisionIndicatorView")
         self.collision_indicator_view.setStyleSheet("background-color: white;")
+
+        self.warning_widget = qtw.QWidget(parent_widget)
+        self.warning_widget.setGeometry(QRect(30, 20, 871, 361))
+        self.warning_symbol = QPixmap("images/warning.png").scaled(int(self.warning_widget.height() / 2),
+                                                                   int(self.warning_widget.width() / 2),
+                                                                   Qt.KeepAspectRatio, Qt.FastTransformation)
+        self.warning_label = qtw.QLabel()
+        self.warning_label.setPixmap(self.warning_symbol)
+
+        self.warning_layout = qtw.QVBoxLayout()
+        self.warning_layout.addWidget(self.warning_label)
+        self.warning_widget.setLayout(self.warning_layout)
+        self.warning_label.setHidden(True)
+
+        layout = qtw.QVBoxLayout()
+        layout.addWidget(self.warning_label)
+
+        self.collision_indicator_view.setLayout(layout)
+
+    def warning_symbol_hidden(self, b):
+        self.warning_label.setHidden(b)
 
 class LogView(qtw.QWidget):
     def __init__(self, parent_widget):
@@ -322,10 +332,10 @@ if __name__ == "__main__":
 
                 # cv2.imshow(WINDOW, result)
                 ui.camera_view.update_frame(result)
-                if danger > 5:
+                if danger > 4:
                     ui.camera_view.display_warning()
                 else:
-                    ui.camera_view.warning_label.setHidden(True)
+                    ui.camera_view.collision_ind.warning_symbol_hidden(True)
 
                 setSlider("Danger", WINDOW, danger)
 
