@@ -48,13 +48,13 @@ class CameraView(qtw.QWidget):
         self.settings = settings
         self.collision_ind = collision_indicator
 
-        self.warning_button = qtw.QPushButton("Warning Button")
-        self.warning_button.clicked.connect(lambda: self.display_warning())
+        # self.warning_button = qtw.QPushButton("Warning Button")
+        # self.warning_button.clicked.connect(lambda: self.display_warning())
         self.video_label = qtw.QLabel()
 
         
         layout = qtw.QVBoxLayout()
-        layout.addWidget(self.warning_button)
+        # layout.addWidget(self.warning_button)
         #  layout.addWidget(self.warning_widget, alignment=Qt.AlignRight | Qt.AlignBottom)
         layout.addWidget(self.video_label)
         self.camera_view.setLayout(layout)
@@ -63,7 +63,9 @@ class CameraView(qtw.QWidget):
     def update_frame(self, frame):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = QImage(frame, frame.shape[1], frame.shape[0], QImage.Format_RGB888)
-        self.video_label.setPixmap(QPixmap.fromImage(image))
+        pixmap_image = QPixmap.fromImage(image)
+        pixmap_image = pixmap_image.scaled(self.camera_view.frameGeometry().width(),self.camera_view.frameGeometry().height())
+        self.video_label.setPixmap(pixmap_image)
 
     def display_warning(self):
         logging.warning("Door detect, width 72 in / 189 cm")
@@ -294,10 +296,19 @@ if __name__ == "__main__":
     monoLeft = getMonoCamera(pipeline, isLeft=True)
     monoRight = getMonoCamera(pipeline, isLeft=False)
 
+    # Get color camera
+    cam_rgb = pipeline.create(dai.node.ColorCamera)
+    # cam_rgb.setPreviewSize(300, 300)
+    cam_rgb.setInterleaved(False)
+
     stereo = getStereoPair(pipeline, monoLeft, monoRight)
 
     xOutDisp = pipeline.createXLinkOut()
     xOutDisp.setStreamName("disparity")
+
+    xout_rgb = pipeline.create(dai.node.XLinkOut)
+    xout_rgb.setStreamName("rgb")
+    cam_rgb.video.link(xout_rgb.input)
 
     stereo.disparity.link(xOutDisp.input)
 
@@ -306,6 +317,8 @@ if __name__ == "__main__":
         with dai.Device(pipeline) as device:
             disparityQueue = device.getOutputQueue(name="disparity", maxSize=1, blocking=False)
 
+            rgbQueue = device.getOutputQueue("rgb")
+            frame = None
             # map disparity from 0 to 255
             disparityMultiplier = 255 / stereo.initialConfig.getMaxDisparity()
 
@@ -325,13 +338,22 @@ if __name__ == "__main__":
             referenceFrame = get_reference()
 
             while True:
+                # Code for color camera
+                rgb_in = rgbQueue.tryGet()
+                if rgb_in is not None:
+                    rgb_frame = rgb_in.getCvFrame()
+                    ui.camera_view.update_frame(rgb_frame)
+
+                # Code for depth camera
+
                 disparity = getFrame(disparityQueue)
                 disparity = (disparity * disparityMultiplier).astype(np.uint8)
 
-                danger, result = analyze_frame(disparity, referenceFrame)
+                danger, depth_frame = analyze_frame(disparity, referenceFrame)  # Result is type np.uint8
 
                 # cv2.imshow(WINDOW, result)
-                ui.camera_view.update_frame(result)
+                # ui.camera_view.update_frame(depth_frame)
+
                 if danger > 4:
                     ui.camera_view.display_warning()
                 else:
