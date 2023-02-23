@@ -58,8 +58,8 @@ class CameraInput(QObject):
 
 		return stereo
 
-	def get_reference(self,):
-		referenceFrame = np.zeros((self.CAM_HEIGHT, self.CAM_WIDTH)) # same dimensions as images from the camera
+	def get_reference(self):
+		reference_frame = np.zeros((self.CAM_HEIGHT, self.CAM_WIDTH)) # same dimensions as images from the camera
 
 		# Iterating in interpreted python instead of numpy
 		# This is slow, but we only do this once at startup

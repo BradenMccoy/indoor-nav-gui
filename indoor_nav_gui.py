@@ -174,7 +174,7 @@ VFOV = 50.0  # Vertical field of view
 BASELINE = 7.5  # Distance between stereo cameras in cm
 FOCAL = 883.15  # Magic number needed for disparity -> depth calculation
 
-WINDOW = "Indoor Nav"
+WINDOW = "Collision Detection"
 
 
 def getFrame(queue):
@@ -209,20 +209,29 @@ def getStereoPair(pipeline, monoLeft, monoRight):
 
 
 def get_reference():
-    referenceFrame = np.zeros((CAM_HEIGHT, CAM_WIDTH))  # same dimensions as images from the camera
+    reference_frame = np.zeros((CAM_HEIGHT, CAM_WIDTH))  # same dimensions as images from the camera
 
     # Iterating in interpreted python instead of numpy
     # This is slow, but we only do this once at startup
-    for y in range(0, CAM_HEIGHT):
-        # Angle of the current pixel
-        theta = ((1.0 - (y / CAM_HEIGHT)) * VFOV) - (VFOV / 2) + MOUNT_ANGLE
+    # for y in range(0, CAM_HEIGHT):
+    #     # Angle of the current pixel
+    #     theta = ((1.0 - (y / CAM_HEIGHT)) * VFOV) - (VFOV / 2) + MOUNT_ANGLE
 
-        brightness = depthToBrightness(MOUNT_ELEVATION / (abs(math.tan(math.radians(theta)))))
+    #     brightness = depthToBrightness(MOUNT_ELEVATION / (abs(math.tan(math.radians(theta)))))
 
-        for x in range(0, CAM_WIDTH):
-            referenceFrame[y][x] = brightness
+    #     for x in range(0, CAM_WIDTH):
+    #         referenceFrame[y][x] = brightness
 
-    return referenceFrame.astype(np.uint8)
+    # generate an array of theta values based on VFOV and MOUNT_ANGLE
+    theta = np.linspace(-(VFOV / 2) + MOUNT_ANGLE, VFOV / 2 + MOUNT_ANGLE, CAM_HEIGHT)
+	# calculate elevation factor
+    elevation_factor = MOUNT_ELEVATION / np.tan(np.radians(theta))
+	# get an array of brightness values
+    brightness = depthToBrightness(elevation_factor)
+	# tile brightness array along the second axis CAM_WIDTH times and create the referenceFrame array
+    reference_frame = np.tile(brightness[:, np.newaxis], (1, CAM_WIDTH))
+
+    return reference_frame.astype(np.uint8)
 
 
 # Image brightness (0 to 255) to depth (cm)
@@ -242,28 +251,15 @@ def depthToBrightness(d):
 
 
 '''
-	Analyzes a given frame compared to what is considered a safe reference image
-	returns the danger value, and a new frame which highlights dangerous areas in white
+	Use the current frame to compute a danger value ranging from 0 to 10, purely
+    based on distance from an object.
 '''
-
-
-def analyze_frame(frame, referenceFrame):
-    frame = np.where(frame != 0, frame, referenceFrame)  # replace unknown values with whatever value is expected
-
-    # we then find the difference between the expected depth and actual depth
-
-    # terrible no-good bad hacky workaround for underflow during subtraction:
-    frame = np.clip(np.abs(np.subtract(frame.astype(np.int16), referenceFrame.astype(np.int16))), 0, 255).astype(
-        np.uint8)
-    # essentially, cast both operands to int16, subtract, get absolute value, clamp to [0,255], cast back to uint8
-
-    # we're now left with an image where black means expected, white means unexpected.
-    # therefore, looking for white in the image gives an estimate of danger
-
+def analyze_frame(frame):
     # experimentally, an average value of 50 is extreme danger
-    # so we just divide by 5 to get a decent 0-10 danger value
-    # there's some issues with the math so an empty room gives danger of like, 2? but that's fine for now
-    danger = np.clip(int(np.mean(frame) / 5), 0, 10)
+    # so we just divide by 5 to get a decent 0-10 danger value,
+    # and subtract that from 10 to get the difference, giving 10
+    # for the highest danger, and 0 for the lowest.
+    danger = 10 - np.clip(int(np.mean(frame) / 5), 0, 10)
     return danger, frame
 
 
@@ -349,12 +345,12 @@ if __name__ == "__main__":
                 disparity = getFrame(disparityQueue)
                 disparity = (disparity * disparityMultiplier).astype(np.uint8)
 
-                danger, depth_frame = analyze_frame(disparity, referenceFrame)  # Result is type np.uint8
+                danger, depth_frame = analyze_frame(disparity)  # Result is type np.uint8
 
                 # cv2.imshow(WINDOW, result)
                 # ui.camera_view.update_frame(depth_frame)
 
-                if danger > 4:
+                if danger > 5:
                     ui.camera_view.display_warning()
                 else:
                     ui.camera_view.collision_ind.warning_symbol_hidden(True)
