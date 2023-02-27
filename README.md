@@ -20,7 +20,7 @@ Also worked on the same Pyqt5 GUI that implements our Figma prototype, and creat
 ### UI
 Our implemented features for our UI include a large view for the camera, which shows a warning stop sign for danger values greater than 5, and potential obstacles in black and white, where black objects are expected, and white objects are unexpected. Below this is an indicator of the collision radius, delineating in what range objects will be detected with the current camera angle. Next to this is an area that includes logs about the current location data, such as if a door is detected, and at what time with what distance. Lastly, at the bottom right there is a settings panel that allows the user to adjust various preferences with the program.
 
-A mockup and implementation of our UI is given in the UI documentation section below.
+An early mockup and final implementation of our UI are given in the UI documentation section below.
 
 ### Backend Improvements
 The for loop logic for setting each pixel's initial brightness was improved to not use any loops, and instead utilize `numpy` functions including `linspace()` and `tile()` in order to perform this more efficiently. This saves us from iterating through the entire camera height and width in order to set each brightness manually, saving on computation time.
@@ -44,10 +44,10 @@ The main page includes a camera display, a collision indicator, a text based log
 
 We will use **feedback** by using both visual and audio indicators on collision warnings, which will make it clear and easy to understand when a collision is imminent. The collision indicator is to further aid in determining the cause of a potential collision, and this simple graphic is used to display a direction and location as an effective visual representation. This exists on top of a stop sign that will appear on screen when a problem is detected, representing high **affordance**, as users will visually recognize this stop sign and be aware of its purpose from other places they have witnessed it. The audio warning will also become higher frequency as the object gets closer, which will serve as the audio counterpart to the collision indicator.
 
-Here is a mockup of our main page UI:
+Here is an early mockup of our main page UI:
 ![image](https://user-images.githubusercontent.com/13970556/219263404-354d13b7-30e5-42de-9ccc-30ce7ede7acd.png)
 
-And here is our implementation of it working with a connected depth camera:
-![UI_R1](https://user-images.githubusercontent.com/55826558/219340590-9610b91b-2a64-4832-a3d6-2b6db2bc889d.png)
+And here is our final implementation of it working with a connected depth camera:
+![image](https://user-images.githubusercontent.com/55826558/221696390-3075953d-2049-455c-8d4d-0a9537394b7b.png)
 
 No simulated backend was used for this, as a functioning backend was already implemented by the previous team, and was only marginally improved by our work.
