@@ -1,14 +1,16 @@
 import sys, os
-import camera_input as camera
-import math
 import depthai as dai
 import numpy as np
 import cv2
+import blobconverter
 import logging
 from PyQt5 import QtWidgets as qtw
-from PyQt5.QtCore import Qt, QCoreApplication, QMetaObject, QRect, QUrl, QThread, pyqtSignal, QObject, pyqtSlot
-from PyQt5.QtGui import QPixmap, QImage, QIcon, QFont
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+
+# global variables
+has_logged_object = False
 
 class App(qtw.QWidget):
     def setupUI(self, main_window):
@@ -21,13 +23,13 @@ class App(qtw.QWidget):
         self.log_view = LogView(main_window)
         self.camera_view = CameraView(main_window, self.settings_view, self.collision_indicator_view)
         
-
         self.retranslateUi(main_window)
         QMetaObject.connectSlotsByName(main_window)
 
     def retranslateUi(self, main_window):
         _translate = QCoreApplication.translate
         main_window.setWindowTitle(_translate("MainWindow", "Collision Detection"))
+
 
 class CameraView(qtw.QWidget):
     media_player = QMediaPlayer()
@@ -48,14 +50,10 @@ class CameraView(qtw.QWidget):
         self.settings = settings
         self.collision_ind = collision_indicator
 
-        # self.warning_button = qtw.QPushButton("Warning Button")
-        # self.warning_button.clicked.connect(lambda: self.display_warning())
         self.video_label = qtw.QLabel()
 
         
         layout = qtw.QVBoxLayout()
-        # layout.addWidget(self.warning_button)
-        #  layout.addWidget(self.warning_widget, alignment=Qt.AlignRight | Qt.AlignBottom)
         layout.addWidget(self.video_label)
         self.camera_view.setLayout(layout)
 
@@ -68,13 +66,12 @@ class CameraView(qtw.QWidget):
         self.video_label.setPixmap(pixmap_image)
 
     def display_warning(self):
-        logging.warning("Door detect, width 72 in / 189 cm")
-        logging.critical("Door detect, width 20 in / 51 cm - WARNING!")
+        if not has_logged_object:
+            logging.warning("Warning! You are moving close to an obstacle!")
         if self.settings.hasSound():
-            logging.info("sound played")
             self.media_player.play()
         self.collision_ind.warning_symbol_hidden(False)
-        
+
 
 class CollisionIndicatorView(qtw.QWidget):
     def __init__(self, parent_widget):
@@ -96,13 +93,29 @@ class CollisionIndicatorView(qtw.QWidget):
         self.warning_widget.setLayout(self.warning_layout)
         self.warning_label.setHidden(True)
 
+
+        self.danger_widget = qtw.QWidget(parent_widget)
+        self.danger_widget.setGeometry(QRect(30, 20, 871, 361))
+
+        self.danger_label = qtw.QLabel()
+        self.danger_label.setText("Danger: 0")
+
+        self.danger_layout = qtw.QVBoxLayout()
+        self.danger_layout.addWidget(self.danger_label)
+        self.danger_widget.setLayout(self.danger_layout)
+
         layout = qtw.QVBoxLayout()
         layout.addWidget(self.warning_label)
+        layout.addWidget(self.danger_label)
 
         self.collision_indicator_view.setLayout(layout)
 
     def warning_symbol_hidden(self, b):
         self.warning_label.setHidden(b)
+
+    def update_danger(self, new_danger):
+        self.danger_label.setText(new_danger)
+
 
 class LogView(qtw.QWidget):
     def __init__(self, parent_widget):
@@ -156,11 +169,6 @@ class LogController(logging.Handler):
         msg = self.format(msg)
         self.log_text.appendPlainText(msg)
 
-MEASURED_AVERAGE = 255 / 771.665  # (max_dist-min_dist)/2+min_dist then converted to 0->255 range
-
-ESTIMATED_SAFE_VALUE = 140  # Camera pointed about 30 degrees down 14 inches from the ground reads this pretty consistently
-WARNING_THRESHOLD = 5
-DANGER_THRESHOLD = 10
 
 CAM_WIDTH = 640
 CAM_HEIGHT = 400
@@ -173,8 +181,6 @@ HFOV = 71.9  # Horizontal field of view
 VFOV = 50.0  # Vertical field of view
 BASELINE = 7.5  # Distance between stereo cameras in cm
 FOCAL = 883.15  # Magic number needed for disparity -> depth calculation
-
-WINDOW = "Collision Detection"
 
 
 def getFrame(queue):
@@ -210,17 +216,6 @@ def getStereoPair(pipeline, monoLeft, monoRight):
 
 def get_reference():
     reference_frame = np.zeros((CAM_HEIGHT, CAM_WIDTH))  # same dimensions as images from the camera
-
-    # Iterating in interpreted python instead of numpy
-    # This is slow, but we only do this once at startup
-    # for y in range(0, CAM_HEIGHT):
-    #     # Angle of the current pixel
-    #     theta = ((1.0 - (y / CAM_HEIGHT)) * VFOV) - (VFOV / 2) + MOUNT_ANGLE
-
-    #     brightness = depthToBrightness(MOUNT_ELEVATION / (abs(math.tan(math.radians(theta)))))
-
-    #     for x in range(0, CAM_WIDTH):
-    #         referenceFrame[y][x] = brightness
 
     # generate an array of theta values based on VFOV and MOUNT_ANGLE
     theta = np.linspace(-(VFOV / 2) + MOUNT_ANGLE, VFOV / 2 + MOUNT_ANGLE, CAM_HEIGHT)
@@ -263,23 +258,8 @@ def analyze_frame(frame):
     return danger, frame
 
 
-# UI helper functions to workaround lambda arguments
-def makeSlider(name, window, a_min, a_max):
-    cv2.createTrackbar(name, window, a_min, a_max, (lambda x: x))
-    cv2.setTrackbarPos(name, window, int((a_min + a_max) / 2))
-
-
-def setSlider(name, window, val):
-    cv2.setTrackbarPos(name, window, val)
-
-
 if __name__ == "__main__":
     app = qtw.QApplication(sys.argv)
-
-    #camera_input = camera.CameraInput()
-    #camera_input.setup()
-    #frame_updater_thread = camera.FrameUpdaterThread(camera_input)
-    #frame_updater_thread.start()
 
     main_window = qtw.QWidget()
     ui = App()
@@ -294,8 +274,17 @@ if __name__ == "__main__":
 
     # Get color camera
     cam_rgb = pipeline.create(dai.node.ColorCamera)
-    # cam_rgb.setPreviewSize(300, 300)
     cam_rgb.setInterleaved(False)
+    
+    # Next, we want a neural network that will produce the detections
+    detection_nn = pipeline.createMobileNetDetectionNetwork()
+    # Blob is the Neural Network file, compiled for MyriadX. It contains both the definition and weights of the model
+    # We're using a blobconverter tool to retreive the MobileNetSSD blob automatically from OpenVINO Model Zoo
+    detection_nn.setBlobPath(blobconverter.from_zoo(name='mobilenet-ssd', shaves=6))
+    # Next, we filter out the detections that are below a confidence threshold. Confidence can be anywhere between <0..1>
+    detection_nn.setConfidenceThreshold(0.5)
+    # Next, we link the camera 'preview' output to the neural network detection input, so that it can produce detections
+    cam_rgb.preview.link(detection_nn.input)
 
     stereo = getStereoPair(pipeline, monoLeft, monoRight)
 
@@ -306,17 +295,31 @@ if __name__ == "__main__":
     xout_rgb.setStreamName("rgb")
     cam_rgb.video.link(xout_rgb.input)
 
+    # The same XLinkOut mechanism will be used to receive nn results
+    xout_nn = pipeline.createXLinkOut()
+    xout_nn.setStreamName("nn")
+    detection_nn.out.link(xout_nn.input)
+
     stereo.disparity.link(xOutDisp.input)
 
     try:
         # Connect device
         with dai.Device(pipeline) as device:
             disparityQueue = device.getOutputQueue(name="disparity", maxSize=1, blocking=False)
+            q_nn = device.getOutputQueue("nn")
 
             rgbQueue = device.getOutputQueue("rgb")
             frame = None
+            detections = []
             # map disparity from 0 to 255
             disparityMultiplier = 255 / stereo.initialConfig.getMaxDisparity()
+
+            # Since the detections returned by nn have values from <0..1> range, they need to be multiplied by frame width/height to
+            # receive the actual position of the bounding box on the image
+            def frameNorm(frame, bbox):
+                normVals = np.full(len(bbox), frame.shape[0])
+                normVals[::2] = frame.shape[1]
+                return (np.clip(np.array(bbox), 0, 1) * normVals).astype(int)
 
             '''
                 Disparity: Double array of uint8
@@ -328,45 +331,48 @@ if __name__ == "__main__":
     
             '''
 
-            cv2.namedWindow(WINDOW)
-
-            makeSlider("Danger", WINDOW, 0, DANGER_THRESHOLD)
             referenceFrame = get_reference()
 
             while True:
-                # Code for color camera
+                # Code for color camera and nn
                 rgb_in = rgbQueue.tryGet()
+                in_nn = q_nn.tryGet()
+                rgb_frame = None
+
                 if rgb_in is not None:
                     rgb_frame = rgb_in.getCvFrame()
-                    ui.camera_view.update_frame(rgb_frame)
+                
+                if in_nn is not None:
+                    # when data from nn is received, we take the detections array that contains mobilenet-ssd results
+                    detections = in_nn.detections
 
                 # Code for depth camera
-
                 disparity = getFrame(disparityQueue)
                 disparity = (disparity * disparityMultiplier).astype(np.uint8)
 
                 danger, depth_frame = analyze_frame(disparity)  # Result is type np.uint8
 
-                # cv2.imshow(WINDOW, result)
-                # ui.camera_view.update_frame(depth_frame)
+                if rgb_frame is not None:
+                    for detection in detections:
+                        # for each bounding box, we first normalize it to match the frame size
+                        bbox = frameNorm(rgb_frame, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
+                        # and then draw a rectangle on the frame to show the actual result
+                        cv2.rectangle(rgb_frame, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
+                    # After all the drawing is finished, we show the frame on the screen
+                    ui.camera_view.update_frame(rgb_frame)
 
                 if danger > 5:
                     ui.camera_view.display_warning()
+                    has_logged_object = True
                 else:
                     ui.camera_view.collision_ind.warning_symbol_hidden(True)
+                    has_logged_object = False
 
-                setSlider("Danger", WINDOW, danger)
+                ui.collision_indicator_view.update_danger("Danger: " + str(danger))
 
                 # Check for keyboard input
                 key = cv2.waitKey(1)
-                if key == ord('q'):
-                    # Quit when q is pressed
-                    break
-
-            cv2.destroyAllWindows()
-
-        sys.exit(app.exec_())
     except RuntimeError:
-        ui.camera_view.video_label.setText("Please plug in the depth camera and reload the program")
+        ui.camera_view.video_label.setText("Please connect the depth camera and reload the program!")
         sys.exit(app.exec_())
 

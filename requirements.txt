@@ -1,4 +1,6 @@
 PyQt5
 numpy
+cv2
+blobconverter==1.2.6
 opencv-python==4.5.4.58
 depthai==2.11.1.0
