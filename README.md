@@ -7,14 +7,29 @@ Group Members (Group 1): Ethan Blight, Brady McCoy, Maxwell Dodd, Andrew Luna
 ## Individual Contributions
 
 ### Ethan Blight
-Improved logic for existing backend, including the nested for loop logic in `get_reference()` for setting pixel brightness, and the logic in `analyze_frame()` for subtraction underflow prevention, both in `camera_input.py`. Also worked on adding sections and details to the README describing what was added for R1.
+## R1
+Improved logic for existing backend, including the nested for loop logic in `get_reference()` for setting pixel brightness, and the logic in `analyze_frame()` for subtraction underflow prevention, both in `indoor_nav_gui.py`. Also worked on adding sections and details to the README describing what was added for R1.
+
+## R2
+Changed danger calculation to be purely based on distance, and be much more accurate. Cleaned up UI by consolidating everything to one window, adding danger to the warning area, and added the `blobconverter` package for neural network object detection and outlining in the camera view. Also was responsible for the final presentation for the project.
 ### Brady McCoy
+## R1
 Created a Figma prototype for our UI design, including the controls for and views for all of our needed features. Also handled the UI guidelines and documentation.
+
+## R2
+TODO
 ### Maxwell Dodd
+## R1
 Worked on a Pyqt5 GUI that implements our Figma prototype, testing and implementing the needed features.
+
+## R2
+TODO
 ### Andrew Luna
+## R1
 Also worked on the same Pyqt5 GUI that implements our Figma prototype, and created the initial UI framework in order to make this possible.
 
+## R2
+TODO
 ## Explanation of Implemented Features
 
 ### UI
@@ -30,9 +45,9 @@ Additionally, the logic for preventing underflow when subtracting `frame` and `r
 ## Instructions for Installation
 In order to run the camera program, we first need to clone the code repository by running `git clone https://github.com/BradenMccoy/indoor-nav-gui`.
 
-After the repository has been cloned, we can run `sudo apt install python3` in order to install Python in the current environment if it is not yet installed. Then, just use `cd` to navigate into the repository, and run `python3 indoor_nav_gui.py` to start the program with the depth camera connected via USB.
+After the repository has been cloned, we can run `sudo apt install python3` in order to install Python in the current environment if it is not yet installed. Use `pip3 install -r requirements.txt` to install the necessary packages for the program to run. Then, just use `cd` to navigate into the repository, and run `python3 indoor_nav_gui.py` to start the program with the depth camera connected via USB.
 
-If done correctly, a window will pop up showing the depth stream from the camera, a danger slider at the top representing closeness to a detected obstacle, as well as our other outlined UI elements.
+If done correctly, a window will pop up showing our program UI with the depth camera stream.
 
 ## Our UI Documentation
 
