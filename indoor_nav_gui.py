@@ -164,10 +164,11 @@ class SettingsView(qtw.QWidget):
         self.settings_view.setStyleSheet("background-color: white;")
 
         # mute button for auditory collision warnings
-        self.mute_button = qtw.QPushButton(" Audio Warning")
+        self.mute_button = qtw.QPushButton() #" Audio Warning")
         self.mute_button.clicked.connect(lambda: self.toggle_sound())
         self.mute_button.setFont(QFont('Arial', 14))
         self.mute_button.setIcon(QIcon("images/unmute.png"))
+        self.mute_button.setText(" Mute Audio")
 
         # change sound button for customizing warning sound
         self.change_sound_button = qtw.QPushButton("Change Warning Sound")
@@ -197,8 +198,10 @@ class SettingsView(qtw.QWidget):
         self.audio_warning = not self.audio_warning
         if self.audio_warning:
             self.mute_button.setIcon(QIcon("images/unmute.png"))
+            self.mute_button.setText(" Mute Audio")
         else:
             self.mute_button.setIcon(QIcon("images/mute.png"))
+            self.mute_button.setText(" Unmute Audio")
 
     # whether or not sound is enabled
     def has_sound(self):
