@@ -181,6 +181,8 @@ class SettingsView(qtw.QWidget):
 
     # get the current audio file
     def get_audio(self):
+        if self.audio_file == None:
+            return "soundfx/default.mp3"
         return self.audio_file
 
     # change current audio file to the selected audio file
