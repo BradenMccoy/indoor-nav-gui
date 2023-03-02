@@ -89,6 +89,7 @@ class CameraView(qtw.QWidget):
         if not has_logged_object:
             logging.warning("Warning! You are moving close to an obstacle!")
         if self.settings.has_sound():
+            self.media_player.setMedia(self.settings.get_audio())
             self.media_player.play()
         self.collision_ind.warning_symbol_hidden(False)
 
@@ -168,9 +169,26 @@ class SettingsView(qtw.QWidget):
         self.mute_button.setFont(QFont('Arial', 14))
         self.mute_button.setIcon(QIcon("images/unmute.png"))
 
+        # change sound button for customizing warning sound
+        self.change_sound_button = qtw.QPushButton("Change Warning Sound")
+        self.change_sound_button.clicked.connect(lambda: self.change_sound())
+        self.change_sound_button.setFont(QFont('Arial', 14))
+
         layout = qtw.QVBoxLayout()
         layout.addWidget(self.mute_button)
+        layout.addWidget(self.change_sound_button)
         self.settings_view.setLayout(layout)
+
+    # get the current audio file
+    def get_audio(self):
+        return self.audio_file
+
+    # change current audio file to the selected audio file
+    def change_sound(self):
+        dialog = qtw.QFileDialog(self, directory="soundfx/")
+        if dialog.exec_() == qtw.QDialog.Accepted:
+            self.audio_file = dialog.selectedFiles()[0]
+            logging.warning("Selected " + os.path.basename(self.audio_file))
 
     # turn collision warning sound on or off
     def toggle_sound(self):
