@@ -89,7 +89,9 @@ class CameraView(qtw.QWidget):
         if not has_logged_object:
             logging.warning("Warning! You are moving close to an obstacle!")
         if self.settings.has_sound():
-            self.media_player.setMedia(self.settings.get_audio())
+            url = QUrl.fromLocalFile(self.settings.get_audio())
+            content = QMediaContent(url)
+            self.media_player.setMedia(content)
             self.media_player.play()
         self.collision_ind.warning_symbol_hidden(False)
 
