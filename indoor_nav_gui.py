@@ -34,11 +34,15 @@ class App(qtw.QWidget):
         main_window.resize(927, 652)
 
         # initialize all views
-        self.settings_view = SettingsView(main_window)
+        self.settings_view = SettingsView(main_window, self)
         self.collision_indicator_view = CollisionIndicatorView(main_window)
         self.log_view = LogView(main_window)
         self.camera_view = CameraView(
             main_window, self.settings_view, self.collision_indicator_view)
+        file_path = os.path.join(os.getcwd(), "soundfx/warning.mp3")
+        url = QUrl.fromLocalFile(file_path)
+        content = QMediaContent(url)
+        self.camera_view.media_player.setMedia(content)
 
         self.retranslate_ui(main_window)
         QMetaObject.connectSlotsByName(main_window)
@@ -50,15 +54,11 @@ class App(qtw.QWidget):
 
 # view of depth camera output
 class CameraView(qtw.QWidget):
-    media_player = QMediaPlayer()
-    file_path = os.path.join(os.getcwd(), "soundfx/warning.mp3")
-    url = QUrl.fromLocalFile(file_path)
-    content = QMediaContent(url)
-    media_player.setMedia(content)
 
     def __init__(self, parent_widget, settings, collision_indicator):
         super(CameraView, self).__init__()
         # camera output
+        self.media_player = QMediaPlayer()
         self.camera_view = qtw.QWidget(parent_widget)
         self.camera_view.setGeometry(QRect(30, 20, 871, 361))
         self.camera_view.setObjectName("CameraView")
@@ -72,6 +72,8 @@ class CameraView(qtw.QWidget):
         layout = qtw.QVBoxLayout()
         layout.addWidget(self.video_label)
         self.camera_view.setLayout(layout)
+
+
 
     # draw current frame of camera output
     @pyqtSlot(np.ndarray)
@@ -89,15 +91,14 @@ class CameraView(qtw.QWidget):
         if not has_logged_object:
             logging.warning("Warning! You are moving close to an obstacle!")
         if self.settings.has_sound():
-            url = QUrl.fromLocalFile(self.settings.get_audio())
-            content = QMediaContent(url)
-            self.media_player.setMedia(content)
+
             self.media_player.play()
         self.collision_ind.warning_symbol_hidden(False)
 
 # indication of collisions with warning symbol and danger value
 class CollisionIndicatorView(qtw.QWidget):
     def __init__(self, parent_widget):
+        super(CollisionIndicatorView, self).__init__()
         self.collision_indicator_view = qtw.QWidget(parent_widget)
         self.collision_indicator_view.setGeometry(QRect(29, 399, 211, 231))
         self.collision_indicator_view.setObjectName("CollisionIndicatorView")
@@ -158,8 +159,9 @@ class LogView(qtw.QWidget):
 class SettingsView(qtw.QWidget):
     audio_warning = True
 
-    def __init__(self, parent_widget):
+    def __init__(self, parent_widget, parent_class):
         super(SettingsView, self).__init__()
+        self.parent_class = parent_class
         self.settings_view = qtw.QWidget(parent_widget)
         self.settings_view.setGeometry(QRect(690, 400, 211, 231))
         self.settings_view.setObjectName("SettingsView")
@@ -182,17 +184,23 @@ class SettingsView(qtw.QWidget):
         layout.addWidget(self.change_sound_button)
         self.settings_view.setLayout(layout)
 
-    # get the current audio file
-    def get_audio(self):
-        if self.audio_file == None:
-            return "soundfx/default.mp3"
-        return self.audio_file
+        self.audio_file = "soundfx/default.mp3"
+
+
+    # # get the current audio file
+    # def get_audio(self):
+    #     if self.audio_file == None:
+    #         return "soundfx/default.mp3"
+    #     return self.audio_file
 
     # change current audio file to the selected audio file
     def change_sound(self):
         dialog = qtw.QFileDialog(self, directory="soundfx/")
         if dialog.exec_() == qtw.QDialog.Accepted:
             self.audio_file = dialog.selectedFiles()[0]
+            url = QUrl.fromLocalFile(self.audio_file)
+            content = QMediaContent(url)
+            self.parent_class.camera_view.media_player.setMedia(content)
             logging.warning("Selected " + os.path.basename(self.audio_file))
 
     # turn collision warning sound on or off
@@ -292,12 +300,14 @@ def depth_to_brightness(d):
 # Use the current frame to compute a danger value ranging from 0 to 10, purely
 # based on distance from an object.
 def analyze_frame(frame):
-    # experimentally, an average value of 50 is extreme danger
-    # so we just divide by 5 to get a decent 0-10 danger value,
-    # and subtract that from 10 to get the difference, giving 10
-    # for the highest danger, and 0 for the lowest.
-    danger = 10 - np.clip(int(np.mean(frame) / 5), 0, 10)
-    return danger, frame
+    #  Get the value of the 6th closest frame
+    frame_cpy = frame.copy()
+    sorted = np.sort(frame_cpy, axis=None)
+    closest_depths = sorted[-1000:]  # Gets the 10 closest pixels
+    calc_depth = 255 - np.average(closest_depths)
+
+
+    return calc_depth, frame
 
 
 if __name__ == "__main__":
@@ -374,7 +384,7 @@ if __name__ == "__main__":
                     [X][X] is bottom right
     
             '''
-
+            min_depth = 70
             while True:
                 # Code for color camera and nn
                 rgb_in = rgbQueue.tryGet()
@@ -389,11 +399,11 @@ if __name__ == "__main__":
                     detections = in_nn.detections
 
                 # Code for depth camera
-                disparity = get_frame(disparityQueue)
-                disparity = (disparity * disparityMultiplier).astype(np.uint8)
+                depth_frame = get_frame(disparityQueue)
+                depth_frame = (depth_frame * disparityMultiplier).astype(np.uint8)
 
-                danger, depth_frame = analyze_frame(
-                    disparity)  # Result is type np.uint8
+                depth, depth_frame = analyze_frame(
+                    depth_frame)  # Result is type np.uint8
 
                 if rgb_frame is not None:
                     for detection in detections:
@@ -406,8 +416,8 @@ if __name__ == "__main__":
                     # After all the drawing is finished, we show the frame on the screen
                     ui.camera_view.update_frame(rgb_frame)
 
-                # show collision warning if computed danger is above 5
-                if danger > 5:
+
+                if (depth <= min_depth):
                     ui.camera_view.display_warning()
                     has_logged_object = True
                 # otherwise hide the warning
@@ -416,7 +426,7 @@ if __name__ == "__main__":
                     has_logged_object = False
 
                 ui.collision_indicator_view.update_danger(
-                    "Danger: " + str(danger))
+                    "Danger: " + str(depth))
 
                 # Check for keyboard input
                 key = cv2.waitKey(1)
