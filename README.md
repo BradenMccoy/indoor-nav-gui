@@ -11,26 +11,27 @@ Group Members (Group 1): Ethan Blight, Brady McCoy, Maxwell Dodd, Andrew Luna
 Improved logic for existing backend, including the nested for loop logic in `get_reference()` for setting pixel brightness, and the logic in `analyze_frame()` for subtraction underflow prevention, both in `indoor_nav_gui.py`. Also worked on adding sections and details to the README describing what was added for R1.
 
 ## R2
-Changed danger calculation to be purely based on distance, and be much more accurate. Cleaned up UI by consolidating everything to one window, adding danger to the warning area, and added the `blobconverter` package for neural network object detection and outlining in the camera view. Also was responsible for the final presentation for the project.
+Changed danger calculation to be purely based on distance, and be much more accurate, (later changed to be depth-based by Max). Cleaned up UI by consolidating everything to one window, adding danger to the warning area, and added the `blobconverter` package for neural network object detection and outlining in the camera view. Also was responsible for creating the final presentation for the project.
 ### Brady McCoy
 ## R1
 Created a Figma prototype for our UI design, including the controls for and views for all of our needed features. Also handled the UI guidelines and documentation.
 
 ## R2
-TODO
+Recorded the final demo of our project, as well as a video of our final presentation.
 ### Maxwell Dodd
 ## R1
 Worked on a Pyqt5 GUI that implements our Figma prototype, testing and implementing the needed features.
 
 ## R2
-TODO
+Implemented a depth system to detect objects at a given distance away from the camera, ranging from 0 to 255, and issuing warnings at a value less than or equal to the minimum depth. This replaced the old danger system which computed a value ranging from 0 to 10 from a given frame of camera output.
 ### Andrew Luna
 ## R1
 Also worked on the same Pyqt5 GUI that implements our Figma prototype, and created the initial UI framework in order to make this possible.
 
 ## R2
-TODO
-## Explanation of Implemented Features
+Added a minimum depth slider for this value to be adjusted by the user, and added the ability to customize the sound for collision warnings in the program via a button.
+
+## Explanation of Implemented Features (R1)
 
 ### UI
 Our implemented features for our UI include a large view for the camera, which shows a warning stop sign for danger values greater than 5, and potential obstacles in black and white, where black objects are expected, and white objects are unexpected. Below this is an indicator of the collision radius, delineating in what range objects will be detected with the current camera angle. Next to this is an area that includes logs about the current location data, such as if a door is detected, and at what time with what distance. Lastly, at the bottom right there is a settings panel that allows the user to adjust various preferences with the program.
