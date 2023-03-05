@@ -11,19 +11,22 @@ Group Members (Group 1): Ethan Blight, Brady McCoy, Maxwell Dodd, Andrew Luna
 Improved logic for existing backend, including the nested for loop logic in `get_reference()` for setting pixel brightness, and the logic in `analyze_frame()` for subtraction underflow prevention, both in `indoor_nav_gui.py`. Also worked on adding sections and details to the README describing what was added for R1.
 
 ## R2
-Changed danger calculation to be purely based on distance, and be much more accurate, (later changed to be depth-based by Max). Cleaned up UI by consolidating everything to one window, adding danger to the warning area, and added the `blobconverter` package for neural network object detection and outlining in the camera view. Also was responsible for creating the final presentation for the project.
+Changed danger calculation to be purely based on distance, and be much more accurate, (later changed to be depth-based by Max). Cleaned up UI by consolidating everything to one window, adding danger to the warning area, and added the `blobconverter` package for neural network object detection and outlining in the camera view. Also was responsible for creating the final presentation for the project, and adding sections and details to the README describing what was added for R1.
+
 ### Brady McCoy
 ## R1
-Created a Figma prototype for our UI design, including the controls for and views for all of our needed features. Also handled the UI guidelines and documentation.
+Created a Figma prototype for our UI design, including the controls and views for all of our needed features. Also handled the UI guidelines and documentation.
 
 ## R2
-Recorded the final demo of our project, as well as a video of our final presentation.
+Added finishing touches to our final presentation, and recorded a video of it. Also helped facilitate our usability evaluation session.
+
 ### Maxwell Dodd
 ## R1
 Worked on a Pyqt5 GUI that implements our Figma prototype, testing and implementing the needed features.
 
 ## R2
-Implemented a depth system to detect objects at a given distance away from the camera, ranging from 0 to 255, and issuing warnings at a value less than or equal to the minimum depth. This replaced the old danger system which computed a value ranging from 0 to 10 from a given frame of camera output.
+Implemented a depth system to detect objects at a given distance away from the camera, ranging from 0 to 255, and issuing warnings at a value less than or equal to the minimum depth. This replaced the old danger system which computed a value ranging from 0 to 10 from a given frame of camera output. Also recorded a final demo of our software.
+
 ### Andrew Luna
 ## R1
 Also worked on the same Pyqt5 GUI that implements our Figma prototype, and created the initial UI framework in order to make this possible.
@@ -31,22 +34,20 @@ Also worked on the same Pyqt5 GUI that implements our Figma prototype, and creat
 ## R2
 Added a minimum depth slider for this value to be adjusted by the user, and added the ability to customize the sound for collision warnings in the program via a button.
 
-## Explanation of Implemented Features (R1)
+## Explanation of Implemented Features
 
 ### UI
-Our implemented features for our UI include a large view for the camera, which shows a warning stop sign for danger values greater than 5, and potential obstacles in black and white, where black objects are expected, and white objects are unexpected. Below this is an indicator of the collision radius, delineating in what range objects will be detected with the current camera angle. Next to this is an area that includes logs about the current location data, such as if a door is detected, and at what time with what distance. Lastly, at the bottom right there is a settings panel that allows the user to adjust various preferences with the program.
+Our implemented features for our UI include a large view for the camera, which shows a warning symbol below it for danger depth values greater than the minimum depth, as determined by the depth slider, and potential obstacles outlined using neural network technology. A warning sound is optionally played when the danger value is great enough, as shown near the warning symbol. Next to this is an area that includes logs altering users if they are about to collide with an obstacle, such as a door, wall, or trash can. Lastly, at the bottom right there are settings that allows the user to adjust various preferences with the program, including muting the collision warnings, changing the sound, and adjusting the minimum depth.
 
 An early mockup and final implementation of our UI are given in the UI documentation section below.
 
 ### Backend Improvements
-The for loop logic for setting each pixel's initial brightness was improved to not use any loops, and instead utilize `numpy` functions including `linspace()` and `tile()` in order to perform this more efficiently. This saves us from iterating through the entire camera height and width in order to set each brightness manually, saving on computation time.
-
-Additionally, the logic for preventing underflow when subtracting `frame` and `referenceFrame` was greatly improved, with a boolean mask being used to know whether to subtract `frame` from `referenceFrame`, or `referenceFrame` from `frame`, and then clipping to 255, requiring no conversion to `int16` types.
+Most of the previous camera logic was replaced with new logic centering around a depth calculation and neural network object detection. Instead of a danger value ranging from 0 to 10 by comparing the current frame to a reference frame, our program calculates a depth value ranging from 0 to 255 that can be adjusted by the user. When the camera depth exceeds this threshold, a warning is issued. Many of the methods for the black and white colors shown by the camera were also replaced by us with more efficient solutions.
 
 ## Instructions for Installation
 In order to run the camera program, we first need to clone the code repository by running `git clone https://github.com/BradenMccoy/indoor-nav-gui`.
 
-After the repository has been cloned, we can run `sudo apt install python3` in order to install Python in the current environment if it is not yet installed. Use `pip3 install -r requirements.txt` to install the necessary packages for the program to run. Then, just use `cd` to navigate into the repository, and run `python3 indoor_nav_gui.py` to start the program with the depth camera connected via USB.
+After the repository has been cloned, we can run `sudo apt install python3` in order to install Python in the current environment if it is not yet installed. Then, just use `cd` to navigate into the repository, use `pip3 install -r requirements.txt` to install the necessary packages for the program to run, and run `python3 indoor_nav_gui.py` to start the program with the depth camera connected via USB.
 
 If done correctly, a window will pop up showing our program UI with the depth camera stream.
 
@@ -56,9 +57,9 @@ If done correctly, a window will pop up showing our program UI with the depth ca
 
 Our solution is based around assisting the user by supplying additional helpful information about their surroundings, and to this end, we decided that only one page would be necessary. We found that everything users would need could fit into a single screen with room to spare for additions if they are needed. Future work may add additional screens as more features are added.
 
-The main page includes a camera display, a collision indicator, a text based log box, and a settings panel. All of these are clearly displayed and have their own dedicated spaces. **Visibility** was a key guideline considered for these features, notice how much space the camera display takes up to allow for users to clearly see what the camera is seeing. Additionally on the settings menu, we’ve used a large icon to represent "mute", which is **consistent** with other applications and more visible than the other settings because we anticipate it to be the most used.
+The main page includes a camera display, a collision indicator with a danger value, a text based log box, and a settings panel with buttons for adjusting the auditory warnings, and a slider for adjusting the minimum depth. All of these are clearly displayed and have their own dedicated spaces. **Visibility** was a key guideline considered for these features, with how much space the camera display takes up to allow for users to clearly see what the camera is seeing. Additionally on the settings menu, we’ve used a large icon to represent "mute", which is **consistent** with other applications and more visible than the other settings because we anticipate it to be the most used.
 
-We will use **feedback** by using both visual and audio indicators on collision warnings, which will make it clear and easy to understand when a collision is imminent. The collision indicator is to further aid in determining the cause of a potential collision, and this simple graphic is used to display a direction and location as an effective visual representation. This exists on top of a stop sign that will appear on screen when a problem is detected, representing high **affordance**, as users will visually recognize this stop sign and be aware of its purpose from other places they have witnessed it. The audio warning will also become higher frequency as the object gets closer, which will serve as the audio counterpart to the collision indicator.
+We will use **feedback** by using both visual and audio indicators for collision warnings, which will make it clear and easy to understand when a collision is imminent. The collision indicator is to further aid in determining the cause of a potential collision, and this simple graphic is used to display a direction and location as an effective visual representation. This ultimately represents high **affordance**, as users will visually recognize this symbol and be aware of its purpose from other places they have witnessed it.
 
 Here is an early mockup of our main page UI:
 ![image](https://user-images.githubusercontent.com/13970556/219263404-354d13b7-30e5-42de-9ccc-30ce7ede7acd.png)
