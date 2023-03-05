@@ -37,7 +37,7 @@ Added a minimum depth slider for this value to be adjusted by the user, and adde
 ## Explanation of Implemented Features
 
 ### UI
-Our implemented features for our UI include a large view for the camera, which shows a warning symbol below it for danger depth values greater than the minimum depth, as determined by the depth slider, and potential obstacles outlined using neural network technology. A warning sound is optionally played when the danger value is great enough, as shown near the warning symbol. Next to this is an area that includes logs altering users if they are about to collide with an obstacle, such as a door, wall, or trash can. Lastly, at the bottom right there are settings that allows the user to adjust various preferences with the program, including muting the collision warnings, changing the sound, and adjusting the minimum depth.
+Our implemented features for our UI include a large view for the camera, which shows a warning symbol below it for danger depth values greater than the minimum depth, as determined by the depth slider, and potential obstacles outlined using neural network technology. A warning sound is optionally played when the danger value is great enough, as shown near the warning symbol. Next to this is an area that includes logs alerting users if they are about to collide with an obstacle, such as a door, wall, or trash can. Lastly, at the bottom right there are settings that allow the user to adjust various preferences with the program, including muting the collision warnings, changing the sound, and adjusting the minimum depth.
 
 An early mockup and final implementation of our UI are given in the UI documentation section below.
 
