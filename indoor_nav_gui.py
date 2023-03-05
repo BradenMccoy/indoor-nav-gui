@@ -22,6 +22,9 @@ HFOV = 71.9  # Horizontal field of view
 VFOV = 50.0  # Vertical field of view
 BASELINE = 7.5  # Distance between stereo cameras in cm
 FOCAL = 883.15  # Magic number needed for disparity -> depth calculation
+MIN_THRESHOLD = 0
+MAX_THRESHOLD = 255
+DEFAULT_THRESHOLD = 70
 
 has_logged_object = False
 
@@ -73,8 +76,6 @@ class CameraView(qtw.QWidget):
         layout.addWidget(self.video_label)
         self.camera_view.setLayout(layout)
 
-
-
     # draw current frame of camera output
     @pyqtSlot(np.ndarray)
     def update_frame(self, frame):
@@ -91,7 +92,6 @@ class CameraView(qtw.QWidget):
         if not has_logged_object:
             logging.warning("Warning! You are moving close to an obstacle!")
         if self.settings.has_sound():
-
             self.media_player.play()
         self.collision_ind.warning_symbol_hidden(False)
 
@@ -108,8 +108,7 @@ class CollisionIndicatorView(qtw.QWidget):
         self.warning_widget = qtw.QWidget(parent_widget)
         self.warning_widget.setGeometry(QRect(30, 20, 871, 361))
         self.warning_symbol = QPixmap("images/warning.png").scaled(int(self.warning_widget.height() / 2),
-                                                                   int(self.warning_widget.width(
-                                                                   ) / 2),
+                                                                   int(self.warning_widget.width() / 2),
                                                                    Qt.KeepAspectRatio, Qt.FastTransformation)
         self.warning_label = qtw.QLabel()
         self.warning_label.setPixmap(self.warning_symbol)
@@ -158,6 +157,7 @@ class LogView(qtw.QWidget):
 # settings used to tailor the program user experience
 class SettingsView(qtw.QWidget):
     audio_warning = True
+    distance_threshold = DEFAULT_THRESHOLD
 
     def __init__(self, parent_widget, parent_class):
         super(SettingsView, self).__init__()
@@ -168,7 +168,7 @@ class SettingsView(qtw.QWidget):
         self.settings_view.setStyleSheet("background-color: white;")
 
         # mute button for auditory collision warnings
-        self.mute_button = qtw.QPushButton() #" Audio Warning")
+        self.mute_button = qtw.QPushButton()
         self.mute_button.clicked.connect(lambda: self.toggle_sound())
         self.mute_button.setFont(QFont('Arial', 14))
         self.mute_button.setIcon(QIcon("images/unmute.png"))
@@ -179,13 +179,56 @@ class SettingsView(qtw.QWidget):
         self.change_sound_button.clicked.connect(lambda: self.change_sound())
         self.change_sound_button.setFont(QFont('Arial', 14))
 
+        # label indicating the distance threshold section
+        self.threshold_label = qtw.QLabel("\nMinimum Warning Distance")
+        self.threshold_label.setFont(QFont('Arial', 12))
+
+        # editable textbox that displays the current minumum distance threshold
+        self.threshold_textbox = qtw.QPlainTextEdit()
+        self.threshold_textbox.resize(int(self.settings_view.width() / 6),
+                                      int(self.settings_view.width() / 6))
+        self.threshold_textbox.setFont(QFont('Arial', 12))
+        self.threshold_textbox.setPlainText(str(DEFAULT_THRESHOLD))
+        self.threshold_textbox.textChanged.connect(lambda: self.change_threshold())
+        
+        # slider that modifies the minimum distance threshold
+        self.threshold_slider = qtw.QSlider(Qt.Horizontal)
+        self.threshold_slider.setMinimum(MIN_THRESHOLD)
+        self.threshold_slider.setMaximum(MAX_THRESHOLD)
+        self.threshold_slider.setValue(DEFAULT_THRESHOLD)
+        self.threshold_slider.valueChanged.connect(lambda: self.threshold_textbox.setPlainText(str(self.threshold_slider.value())))
+
+        # labels that indicates the range of slider values
+        self.before_slider_label = qtw.QLabel(str(MIN_THRESHOLD))
+        self.before_slider_label.setFont(QFont('Arial', 12))
+        self.after_slider_label = qtw.QLabel(str(MAX_THRESHOLD))
+        self.after_slider_label.setFont(QFont('Arial', 12))
+
+        # layout to make sure the slider labels are on opposing sides of the slider
+        slider_layout = qtw.QHBoxLayout()
+        slider_layout.addWidget(self.before_slider_label)
+        slider_layout.addWidget(self.threshold_slider)
+        slider_layout.addWidget(self.after_slider_label)
+
         layout = qtw.QVBoxLayout()
         layout.addWidget(self.mute_button)
         layout.addWidget(self.change_sound_button)
+        layout.addWidget(self.threshold_label)
+        layout.addLayout(slider_layout)
+        layout.addWidget(self.threshold_textbox)
         self.settings_view.setLayout(layout)
 
         self.audio_file = "soundfx/default.mp3"
 
+    def change_threshold(self):
+        new_threshold = self.threshold_textbox.toPlainText()
+        if new_threshold.isdigit():
+            if int(new_threshold) >= MIN_THRESHOLD and int(new_threshold) <= MAX_THRESHOLD:
+                self.distance_threshold = int(new_threshold)
+            else:
+                logging.warning("The distance threshold must be between " + str(MIN_THRESHOLD) + " and " + str(MAX_THRESHOLD))
+        else:
+            logging.warning("The distance threshold must be a number")
 
     # # get the current audio file
     # def get_audio(self):
@@ -309,6 +352,8 @@ def analyze_frame(frame):
 
     return calc_depth, frame
 
+def get_min_depth():
+    return min_depth
 
 if __name__ == "__main__":
     app = qtw.QApplication(sys.argv)
@@ -384,8 +429,10 @@ if __name__ == "__main__":
                     [X][X] is bottom right
     
             '''
-            min_depth = 70
+            # min_depth = DEFAULT_THRESHOLD
             while True:
+                min_depth = ui.settings_view.distance_threshold
+
                 # Code for color camera and nn
                 rgb_in = rgbQueue.tryGet()
                 in_nn = q_nn.tryGet()
