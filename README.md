@@ -37,7 +37,7 @@ Added a minimum depth slider for this value to be adjusted by the user, and adde
 ## Explanation of Implemented Features
 
 ### UI
-Our implemented features for our UI include a large view for the camera, which shows a warning symbol below it for danger depth values greater than the minimum depth, as determined by the depth slider, and potential obstacles outlined using neural network technology. A warning sound is optionally played when the danger value is great enough, as shown near the warning symbol. Next to this is an area that includes logs alerting users if they are about to collide with an obstacle, such as a door, wall, or trash can. Lastly, at the bottom right there are settings that allow the user to adjust various preferences with the program, including muting the collision warnings, changing the sound, and adjusting the minimum depth.
+Our implemented features for our UI include a large view for the camera, which shows a warning symbol below it for danger depth values greater than the minimum depth, as determined by the depth slider or value entered manually into the box below it, and potential obstacles outlined in blue using neural network technology. A warning sound is optionally played when the danger value is great enough, as shown near the warning symbol. Next to this is an area that includes logs alerting users if they are about to collide with an obstacle, such as a door, wall, or trash can. Lastly, at the bottom right there are settings that allow the user to adjust various preferences with the program, including muting the collision warnings, changing the sound, and adjusting the minimum depth.
 
 An early mockup and final implementation of our UI are given in the UI documentation section below.
 
@@ -55,9 +55,9 @@ If done correctly, a window will pop up showing our program UI with the depth ca
 
 ### #1 - Main Page
 
-Our solution is based around assisting the user by supplying additional helpful information about their surroundings, and to this end, we decided that only one page would be necessary. We found that everything users would need could fit into a single screen with room to spare for additions if they are needed. Future work may add additional screens as more features are added.
+Our solution is based around assisting the user by supplying additional helpful information about their surroundings, and to this end, we decided that only one primary page for the program would be necessary. We found that everything users would need could fit into a single screen with room to spare for additions if they are needed. Future work may add additional designed screens as more features are added.
 
-The main page includes a camera display, a collision indicator with a danger value, a text based log box, and a settings panel with buttons for adjusting the auditory warnings, and a slider for adjusting the minimum depth. All of these are clearly displayed and have their own dedicated spaces. **Visibility** was a key guideline considered for these features, with how much space the camera display takes up to allow for users to clearly see what the camera is seeing. Additionally on the settings menu, we’ve used a large icon to represent "mute", which is **consistent** with other applications and more visible than the other settings because we anticipate it to be the most used.
+The main page includes a camera display with blue outlines representing objects in view, a collision indicator with a danger value representing distance to an object, a text based log box, and a settings panel with buttons for adjusting the auditory warnings, and a slider for adjusting the minimum depth. All of these are clearly displayed and have their own dedicated spaces. **Visibility** was a key guideline considered for these features, with how much space the camera display takes up to allow for users to clearly see what the camera is seeing. Additionally on the settings menu, we’ve used a large icon to represent "mute", which is **consistent** with other applications and more visible than the other settings because we anticipate it to be the most used.
 
 We will use **feedback** by using both visual and audio indicators for collision warnings, which will make it clear and easy to understand when a collision is imminent. The collision indicator is to further aid in determining the cause of a potential collision, and this simple graphic is used to display a direction and location as an effective visual representation. This ultimately represents high **affordance**, as users will visually recognize this symbol and be aware of its purpose from other places they have witnessed it.
 
@@ -66,5 +66,11 @@ Here is an early mockup of our main page UI:
 
 And here is our final implementation of it working with a connected depth camera:
 ![image](https://user-images.githubusercontent.com/55826558/223003262-3444c15c-295e-4b51-93ec-b17e57dfd1b5.png)
+
+### #2 - Change Warning Sound Screen
+
+When clicking on the "Change Warning Sound" button, a standard dialog is brought up to select a sound file, as determined by the operating system. Once a sound file is selected, the user selects it and closes the window. This is its appearance on a Windows machine, and since we did not design this screen, it differs per machine:
+
+![image](https://user-images.githubusercontent.com/55826558/223232094-0ad3a6f4-2897-42f3-9440-edee9d9a4e52.png)
 
 No simulated backend was used for this, as a functioning backend was already implemented by the previous team, and was only marginally improved by our work.
