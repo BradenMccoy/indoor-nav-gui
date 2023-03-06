@@ -65,6 +65,6 @@ Here is an early mockup of our main page UI:
 ![image](https://user-images.githubusercontent.com/13970556/219263404-354d13b7-30e5-42de-9ccc-30ce7ede7acd.png)
 
 And here is our final implementation of it working with a connected depth camera:
-![python_dyZNHcloZg](https://user-images.githubusercontent.com/55826558/222355730-b4e398e5-d61b-45ad-94bb-dcf2625958ca.png)
+![image](https://user-images.githubusercontent.com/55826558/223003262-3444c15c-295e-4b51-93ec-b17e57dfd1b5.png)
 
 No simulated backend was used for this, as a functioning backend was already implemented by the previous team, and was only marginally improved by our work.
